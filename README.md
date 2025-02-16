@@ -1,6 +1,6 @@
 # 🎬 Movie Recommender System Using Machine Learning!
 
-<img src="demo/6.jpeg" alt="workflow" width="70%">
+<img src="demo/6.webp" alt="workflow" width="70%">
 
 ## 📌 About This Project
 This is a **Streamlit web application** that recommends movies based on user interests using **Machine Learning and Cosine Similarity**. It provides an **interactive, user-friendly interface** with features like **movie search, IMDb ratings, genres, trailers, and clickable movie posters** for a **seamless recommendation experience**.
@@ -27,7 +27,7 @@ This is a **Streamlit web application** that recommends movies based on user int
 - Each **movie poster is clickable** and redirects to its **IMDb page**.
 - **High-resolution posters** for a clean UI.
 
-### **▶ 5. Watch Trailer Button (Perfectly Aligned)**
+### **▶ 5. Watch Trailer Button**
 - **Dynamically fetches YouTube trailers** for each movie.
 - **Perfectly aligned** across all recommendations.
 - **Hover effects & animated buttons** for a modern look.
