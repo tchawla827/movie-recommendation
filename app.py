@@ -87,6 +87,25 @@ custom_css = """
         max-width: 100%;
         height: auto;
     }
+    /* 🔹 Footer Section */
+    .footer {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        background-color: #1a1a1a;
+        color: white;
+        text-align: center;
+        padding: 10px;
+        font-size: 14px;
+    }
+    .footer a {
+        color: #1DB954;
+        text-decoration: none;
+        font-weight: bold;
+    }
+    .footer a:hover {
+        text-decoration: underline;
+    }
 </style>
 """
 st.markdown(custom_css, unsafe_allow_html=True)
@@ -196,3 +215,6 @@ if st.button("🎥 Recommend"):
                     st.markdown("<div class='button-container'>"
                                 f"<a class='trailer-button' href='{movie['trailer_url']}' target='_blank'>▶ Watch Trailer</a>"
                                 "</div>", unsafe_allow_html=True)
+
+# --- Footer ---
+st.markdown("<div class='footer'>Made by <b>Tavish Chawla</b> | 📧 <a href='mailto:tchawla827@gmail.com'>tchawla827@gmail.com</a></div>", unsafe_allow_html=True)
