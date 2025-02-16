@@ -1,6 +1,6 @@
 """
-Author: Your Name
-Contact: your_email@example.com
+Author: Tavish Chawla
+Contact: tchawla827@gmail.com
 Description: A movie recommender system with IMDb ratings and links.
 """
 
