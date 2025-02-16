@@ -1,7 +1,7 @@
 """
 Author: Tavish Chawla
 Contact: tchawla827@gmail.com
-Description: A modern movie recommender system with an enhanced UI and extra features.
+Description: A modern movie recommender system 
 """
 
 import streamlit as st
@@ -163,7 +163,7 @@ def load_assets():
 movie_data, similarity_matrix = load_assets()
 
 # --- UI Components ---
-st.title("🎬 Movie Recommender System")
+st.title("🎬 Movie Recommender")
 
 # --- 🔥 Improved Search Bar (Now Shows Available Movies) ---
 user_choice = st.selectbox("🔍 Search for a movie:", movie_data["title"].values)
