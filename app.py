@@ -15,39 +15,42 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- CSS for custom styling ---
+# --- Dark Theme CSS ---
 custom_css = """
 <style>
-    /* Change the main background color */
+    /* Set dark background */
     .main {
-        background-color: #f3f3f3;
+        background-color: #121212;
+        color: #ffffff;
     }
     /* Style the header */
     h1 {
-        color: #111111;
+        color: #ffffff;
         text-align: center;
         padding: 1rem;
         margin-bottom: 0;
     }
     /* Movie details styling */
-    .movie-title {
-        font-size: 16px;
-        font-weight: 600;
+    .movie-container {
         text-align: center;
+    }
+    .movie-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #ffffff;
         margin-top: 0.5rem;
         margin-bottom: 0.2rem;
     }
     .movie-rating {
-        font-size: 14px;
-        color: #666;
-        text-align: center;
+        font-size: 16px;
+        color: #ffcc00;
         margin-bottom: 0.5rem;
     }
     .imdb-link {
         font-size: 14px;
         text-align: center;
         display: block;
-        color: #ffcc00;
+        color: #1DB954;
         text-decoration: none;
         font-weight: bold;
         margin-bottom: 0.5rem;
@@ -129,16 +132,16 @@ movie_data, similarity_matrix = load_assets()
 
 # --- UI Components ---
 
-st.title("Movie Recommender System")
+st.title("🎬 Movie Recommender System")
 
 # Dropdown for movie selection
 user_choice = st.selectbox(
-    "Search or select a movie:",
+    "🔍 Search or select a movie:",
     movie_data["title"].values
 )
 
 # Button to trigger recommendations
-if st.button("Recommend"):
+if st.button("🎥 Recommend"):
     recommended_movies = generate_recommendations(user_choice, movie_data, similarity_matrix)
 
     # Display recommendations in columns
@@ -149,7 +152,7 @@ if st.button("Recommend"):
         if index < len(recommended_movies):
             movie = recommended_movies[index]
             with col:
-                st.markdown(f"<div class='movie-title'>{movie['title']}</div>", unsafe_allow_html=True)
-                st.image(movie["poster_url"])
-                st.markdown(f"<div class='movie-rating'>⭐ IMDb: {movie['rating']}</div>", unsafe_allow_html=True)
-                st.markdown(f"<a class='imdb-link' href='{movie['imdb_url']}' target='_blank'>🔗 IMDb Page</a>", unsafe_allow_html=True)
+                st.image(movie["poster_url"])  # Display poster
+                st.markdown(f"<div class='movie-title'>{movie['title']}</div>", unsafe_allow_html=True)  # Name below poster
+                st.markdown(f"<div class='movie-rating'>⭐ IMDb: {movie['rating']}</div>", unsafe_allow_html=True)  # Rating below name
+                st.markdown(f"<a class='imdb-link' href='{movie['imdb_url']}' target='_blank'>🔗 IMDb Page</a>", unsafe_allow_html=True)  # IMDb link
