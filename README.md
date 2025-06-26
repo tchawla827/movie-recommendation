@@ -58,8 +58,8 @@ We used the **TMDB 5000 Movie Dataset**, available on Kaggle:
 
 ### **1️⃣ Clone the Repository**
 ```bash
-git clone https://github.com/entbappy/Movie-Recommender-System-Using-Machine-Learning.git
-cd Movie-Recommender-System-Using-Machine-Learning
+git clone https://github.com/tchawla827/movie-recommendation.git
+cd movie-recommendation
 ```
 
 ### **2️⃣ Create a Virtual Environment**
