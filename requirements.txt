@@ -1,5 +1,6 @@
 ### dependency
 streamlit
 gdown
+pandas==1.3.5
 ### local packages -
 -e . 
