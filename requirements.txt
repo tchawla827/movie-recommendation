@@ -1,6 +1,5 @@
-### dependency
-streamlit
-gdown
+numpy==1.21.6
 pandas==1.3.5
-### local packages -
--e . 
+streamlit==1.49.0
+gdown
+requests
