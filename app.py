@@ -203,12 +203,19 @@ except Exception as e:
     st.error(f"Failed to load movie list: {e}")
     st.stop()
 
+# --- Debug: check what we loaded ---
+st.write("DEBUG movie_data type:", type(movie_data))
+try:
+    st.write(movie_data.head())
+except Exception as e:
+    st.write("movie_data.head() failed:", e)
+
 # ==============================
 # UI
 # ==============================
 st.title("🎬 Movie Recommender")
 
-titles = movie_data["title"].values if "title" in movie_data.columns else []
+titles = movie_data["title"].values if "title" in getattr(movie_data, "columns", []) else []
 user_choice = st.selectbox("🔍 Search for a movie:", titles)
 
 if st.button("🎥 Recommend"):
