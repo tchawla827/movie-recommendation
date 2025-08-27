@@ -121,23 +121,37 @@ def fetch_movie_details(movie_id: int):
     """
     api_url = f"https://api.themoviedb.org/3/movie/{movie_id}"
     params = {"api_key": TMDB_API_KEY, "language": "en-US"}
-    response = requests.get(api_url, params=params).json()
-    
-    poster_path = response.get("poster_path", "")
-    imdb_id = response.get("imdb_id", "")
-    rating = response.get("vote_average", "N/A")
-    genres = ", ".join([genre["name"] for genre in response.get("genres", [])])  # Extract genres
+    try:
+        response = requests.get(api_url, params=params)
+        response.raise_for_status()
+        data = response.json()
+    except requests.RequestException:
+        # Return placeholders if the API call fails
+        return "", "N/A", "#", "", "#"
+
+    poster_path = data.get("poster_path", "")
+    imdb_id = data.get("imdb_id", "")
+    rating = data.get("vote_average", "N/A")
+    genres = ", ".join([genre["name"] for genre in data.get("genres", [])])  # Extract genres
     
     poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else ""
     imdb_url = f"https://www.imdb.com/title/{imdb_id}/" if imdb_id else "#"
     
     # Fetch trailer
     trailer_url = "#"
-    videos = requests.get(f"https://api.themoviedb.org/3/movie/{movie_id}/videos", params=params).json()
-    for video in videos.get("results", []):
-        if video["type"] == "Trailer" and video["site"] == "YouTube":
-            trailer_url = f"https://www.youtube.com/watch?v={video['key']}"
-            break
+    try:
+        videos_response = requests.get(
+            f"https://api.themoviedb.org/3/movie/{movie_id}/videos", params=params
+        )
+        videos_response.raise_for_status()
+        videos = videos_response.json()
+        for video in videos.get("results", []):
+            if video["type"] == "Trailer" and video["site"] == "YouTube":
+                trailer_url = f"https://www.youtube.com/watch?v={video['key']}"
+                break
+    except requests.RequestException:
+        # Leave trailer_url as placeholder on failure
+        pass
     
     return poster_url, rating, imdb_url, genres, trailer_url
 
