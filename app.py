@@ -1,164 +1,163 @@
 """
 Author: Tavish Chawla
 Contact: tchawla827@gmail.com
-Description: A modern movie recommender system 
+Description: A modern movie recommender system
 """
 
-import streamlit as st
 import pickle
+from pathlib import Path
+from typing import Optional
+
+import streamlit as st
 import requests
 
-# Set up page configuration
+# Try to import gdown (required for Drive downloads)
+try:
+    import gdown
+except Exception:
+    gdown = None
+
+# ==============================
+# Page configuration & Styling
+# ==============================
 st.set_page_config(
     page_title="Movie Recommender",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# --- Dark Theme and Enhanced UI ---
 custom_css = """
 <style>
-    .main {
-        background-color: #121212;
-        color: #ffffff;
-    }
-    h1 {
-        text-align: center;
-        color: #ffffff;
-        padding: 1rem;
-    }
+    .main { background-color: #121212; color: #ffffff; }
+    h1 { text-align: center; color: #ffffff; padding: 1rem; }
     .movie-container {
-        text-align: center;
-        transition: transform 0.2s ease-in-out;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: space-between;
-        height: 460px; /* Ensures uniform height for all movie cards */
-        padding-bottom: 20px;
+        text-align: center; transition: transform 0.2s ease-in-out;
+        display: flex; flex-direction: column; align-items: center;
+        justify-content: space-between; height: 460px; padding-bottom: 20px;
     }
-    .movie-container:hover {
-        transform: scale(1.05);
-    }
-    .movie-title {
-        font-size: 18px;
-        font-weight: bold;
-        color: #ffffff;
-        margin-top: 0.5rem;
-    }
-    .movie-rating {
-        font-size: 14px;
-        color: #ffcc00;
-        margin-bottom: 0.5rem;
-    }
-    .movie-genre {
-        font-size: 14px;
-        color: #dddddd;
-        margin-bottom: 0.5rem;
-    }
-    .button-container {
-        margin-top: auto;
-        padding-top: 10px;
-        display: flex;
-        justify-content: center;
-        width: 100%;
-    }
-    /* 🔹 Bright "Watch Trailer" Button */
+    .movie-container:hover { transform: scale(1.05); }
+    .movie-title { font-size: 18px; font-weight: bold; color: #ffffff; margin-top: 0.5rem; }
+    .movie-rating { font-size: 14px; color: #ffcc00; margin-bottom: 0.5rem; }
+    .movie-genre { font-size: 14px; color: #dddddd; margin-bottom: 0.5rem; }
+    .button-container { margin-top: auto; padding-top: 10px; display: flex; justify-content: center; width: 100%; }
     .trailer-button {
         background: linear-gradient(to right, #007BFF, #0056D2);
-        color: white;
-        padding: 10px 18px;
-        border-radius: 20px;
-        font-weight: bold;
-        text-decoration: none;
-        font-size: 14px;
-        display: inline-block;
-        transition: transform 0.2s ease-in-out, background 0.3s ease-in-out;
-        box-shadow: 0px 4px 10px rgba(0, 123, 255, 0.5);
-        text-align: center;
+        color: white; padding: 10px 18px; border-radius: 20px; font-weight: bold; text-decoration: none;
+        font-size: 14px; display: inline-block; transition: transform 0.2s ease-in-out, background 0.3s ease-in-out;
+        box-shadow: 0px 4px 10px rgba(0, 123, 255, 0.5); text-align: center;
     }
-    .trailer-button:hover {
-        background: linear-gradient(to right, #0056D2, #003E99);
-        transform: scale(1.1);
-        box-shadow: 0px 6px 12px rgba(0, 123, 255, 0.7);
-    }
-    img {
-        border-radius: 10px;
-        max-width: 100%;
-        height: auto;
-    }
-    /* 🔹 Footer Section */
+    .trailer-button:hover { background: linear-gradient(to right, #0056D2, #003E99); transform: scale(1.1);
+        box-shadow: 0px 6px 12px rgba(0, 123, 255, 0.7); }
+    img { border-radius: 10px; max-width: 100%; height: auto; }
     .footer {
-        position: fixed;
-        bottom: 0;
-        width: 100%;
-        background-color: #1a1a1a;
-        color: white;
-        text-align: center;
-        padding: 10px;
-        font-size: 14px;
+        position: fixed; bottom: 0; width: 100%; background-color: #1a1a1a; color: white;
+        text-align: center; padding: 10px; font-size: 14px;
     }
-    .footer a {
-        color: #1DB954;
-        text-decoration: none;
-        font-weight: bold;
-    }
-    .footer a:hover {
-        text-decoration: underline;
-    }
+    .footer a { color: #1DB954; text-decoration: none; font-weight: bold; }
+    .footer a:hover { text-decoration: underline; }
 </style>
 """
 st.markdown(custom_css, unsafe_allow_html=True)
 
-# --- API Key ---
-TMDB_API_KEY = "8265bd1679663a7ea12ac168da84d2e8"
+# ==============================
+# Secrets (REQUIRED)
+# ==============================
+def require_secret(name: str) -> str:
+    try:
+        return st.secrets[name]
+    except Exception:
+        st.error(
+            f"Missing secret `{name}`. Create `.streamlit/secrets.toml` locally "
+            f"or set Secrets in Streamlit Cloud. "
+            f"Example:\n\nTMDB_API_KEY=\"...\"\nGDRIVE_FILE_ID=\"...\""
+        )
+        st.stop()
 
-# --- Functions ---
+TMDB_API_KEY: str = require_secret("TMDB_API_KEY")
+GDRIVE_SIMILARITY_FILE_ID: str = require_secret("GDRIVE_FILE_ID")
+GDRIVE_MOVIE_LIST_FILE_ID: Optional[str] = st.secrets.get("MOVIE_LIST_FILE_ID", None)
 
+# ==============================
+# Artifact paths
+# ==============================
+ARTIFACTS_DIR = Path("artifacts")
+SIMILARITY_PATH = ARTIFACTS_DIR / "similarity.pkl"
+MOVIE_LIST_PATH = ARTIFACTS_DIR / "movie_list.pkl"
+
+# ==============================
+# Helpers
+# ==============================
+def _drive_download(file_id: str, dest: Path) -> None:
+    """Download a file from Google Drive by file ID to dest using gdown."""
+    if not file_id:
+        raise ValueError("Google Drive file_id is empty.")
+    if gdown is None:
+        raise ImportError("gdown is not installed. Add 'gdown' to requirements.txt.")
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    url = f"https://drive.google.com/uc?id={file_id}"
+    gdown.download(url, str(dest), quiet=False)
+
+def ensure_local_file(path: Path, file_id: Optional[str], label: str = "") -> Path:
+    """Ensure local file exists; if missing and file_id given, download from Drive."""
+    if path.exists():
+        return path
+    if file_id:
+        with st.spinner(f"Downloading {label or path.name}..."):
+            _drive_download(file_id, path)
+        return path
+    raise FileNotFoundError(
+        f"Missing required artifact: {path}. Provide it locally or set a Drive file ID in secrets."
+    )
+
+# ==============================
+# TMDB / Recommendation logic
+# ==============================
 def fetch_movie_details(movie_id: int):
-    """
-    Fetch movie details including poster, IMDb rating, IMDb ID, genres, and trailer from TMDb API.
-    """
-    api_url = f"https://api.themoviedb.org/3/movie/{movie_id}"
-    params = {"api_key": TMDB_API_KEY, "language": "en-US"}
-    response = requests.get(api_url, params=params).json()
-    
-    poster_path = response.get("poster_path", "")
-    imdb_id = response.get("imdb_id", "")
-    rating = response.get("vote_average", "N/A")
-    genres = ", ".join([genre["name"] for genre in response.get("genres", [])])  # Extract genres
-    
-    poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else ""
-    imdb_url = f"https://www.imdb.com/title/{imdb_id}/" if imdb_id else "#"
-    
-    # Fetch trailer
-    trailer_url = "#"
-    videos = requests.get(f"https://api.themoviedb.org/3/movie/{movie_id}/videos", params=params).json()
-    for video in videos.get("results", []):
-        if video["type"] == "Trailer" and video["site"] == "YouTube":
-            trailer_url = f"https://www.youtube.com/watch?v={video['key']}"
-            break
-    
-    return poster_url, rating, imdb_url, genres, trailer_url
+    """Fetch poster, rating, imdb url, genres, and trailer from TMDb."""
+    try:
+        api_url = f"https://api.themoviedb.org/3/movie/{movie_id}"
+        params = {"api_key": TMDB_API_KEY, "language": "en-US"}
+        resp = requests.get(api_url, params=params, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+
+        poster_path = data.get("poster_path") or ""
+        imdb_id = data.get("imdb_id") or ""
+        rating = data.get("vote_average", "N/A")
+        genres = ", ".join([g.get("name", "") for g in data.get("genres", []) if g.get("name")])
+
+        poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else ""
+        imdb_url = f"https://www.imdb.com/title/{imdb_id}/" if imdb_id else "#"
+
+        # Trailer
+        trailer_url = "#"
+        vids = requests.get(f"https://api.themoviedb.org/3/movie/{movie_id}/videos",
+                            params=params, timeout=15)
+        if vids.ok:
+            v = vids.json()
+            for video in v.get("results", []):
+                if video.get("type") == "Trailer" and video.get("site") == "YouTube" and video.get("key"):
+                    trailer_url = f"https://www.youtube.com/watch?v={video['key']}"
+                    break
+
+        return poster_url, rating, imdb_url, genres, trailer_url
+
+    except Exception:
+        # Fail silently with safe defaults
+        return "", "N/A", "#", "", "#"
 
 def generate_recommendations(selected_movie: str, movie_data, similarity_matrix):
-    """
-    Generates movie recommendations based on a selected movie title.
-    Returns movie details: title, poster, rating, IMDb link, genres, and trailer.
-    """
+    """Return list of dicts for top-5 similar movies to `selected_movie`."""
     idx = movie_data[movie_data['title'] == selected_movie].index[0]
-
     similarity_scores = list(enumerate(similarity_matrix[idx]))
-    similarity_scores = sorted(similarity_scores, key=lambda x: x[1], reverse=True)
+    similarity_scores.sort(key=lambda x: x[1], reverse=True)
 
-    recommended_movies = []
-    
-    for i in similarity_scores[1:6]:  # Fetch top 5 movies
-        movie_id = movie_data.iloc[i[0]].movie_id
-        title = movie_data.iloc[i[0]].title
+    out = []
+    for i in similarity_scores[1:6]:  # top-5
+        movie_id = int(movie_data.iloc[i[0]].movie_id)
+        title = str(movie_data.iloc[i[0]].title)
         poster_url, rating, imdb_url, genres, trailer_url = fetch_movie_details(movie_id)
-        
-        recommended_movies.append({
+        out.append({
             "title": title,
             "poster_url": poster_url,
             "rating": rating,
@@ -166,55 +165,87 @@ def generate_recommendations(selected_movie: str, movie_data, similarity_matrix)
             "genres": genres,
             "trailer_url": trailer_url
         })
+    return out
 
-    return recommended_movies
+# ==============================
+# Load assets (pickles)
+# ==============================
+@st.cache_resource(show_spinner="Loading similarity matrix…")
+def load_similarity():
+    ensure_local_file(SIMILARITY_PATH, GDRIVE_SIMILARITY_FILE_ID, label="similarity.pkl")
+    with open(SIMILARITY_PATH, "rb") as f:
+        return pickle.load(f)
 
+@st.cache_data(show_spinner="Loading movie list…")
+def load_movies_df():
+    if MOVIE_LIST_PATH.exists():
+        with open(MOVIE_LIST_PATH, "rb") as f:
+            return pickle.load(f)
+    if GDRIVE_MOVIE_LIST_FILE_ID:
+        ensure_local_file(MOVIE_LIST_PATH, GDRIVE_MOVIE_LIST_FILE_ID, label="movie_list.pkl")
+        with open(MOVIE_LIST_PATH, "rb") as f:
+            return pickle.load(f)
+    raise FileNotFoundError(
+        "Could not find 'artifacts/movie_list.pkl'. "
+        "Add it locally or set MOVIE_LIST_FILE_ID in Streamlit secrets."
+    )
 
-# --- Load data from pickles ---
-@st.cache_data
-def load_assets():
-    with open("artifacts/movie_list.pkl", "rb") as f:
-        movies_df = pickle.load(f)
-    with open("artifacts/similarity.pkl", "rb") as f:
-        similarity_df = pickle.load(f)
-    return movies_df, similarity_df
+# Instantiate cached assets
+try:
+    similarity_matrix = load_similarity()
+except Exception as e:
+    st.error(f"Failed to load similarity matrix: {e}")
+    st.stop()
 
-movie_data, similarity_matrix = load_assets()
+try:
+    movie_data = load_movies_df()
+except Exception as e:
+    st.error(f"Failed to load movie list: {e}")
+    st.stop()
 
-# --- UI Components ---
+# ==============================
+# UI
+# ==============================
 st.title("🎬 Movie Recommender")
 
-# --- 🔥 Improved Search Bar (Now Shows Available Movies) ---
-user_choice = st.selectbox("🔍 Search for a movie:", movie_data["title"].values)
+titles = movie_data["title"].values if "title" in movie_data.columns else []
+user_choice = st.selectbox("🔍 Search for a movie:", titles)
 
-# Button to trigger recommendations
 if st.button("🎥 Recommend"):
-    if user_choice not in movie_data["title"].values:
+    if user_choice not in titles:
         st.error("⚠️ Movie not found. Please check spelling.")
     else:
-        recommended_movies = generate_recommendations(user_choice, movie_data, similarity_matrix)
-
-        # Display recommendations in a 5-column grid
+        recs = generate_recommendations(user_choice, movie_data, similarity_matrix)
         cols = st.columns(5)
-
-        for index, col in enumerate(cols):
-            if index < len(recommended_movies):
-                movie = recommended_movies[index]
+        for idx, col in enumerate(cols):
+            if idx < len(recs):
+                m = recs[idx]
                 with col:
-                    # Clickable Poster
-                    st.markdown(f'<a href="{movie["imdb_url"]}" target="_blank">'
-                                f'<img src="{movie["poster_url"]}" alt="{movie["title"]}"></a>',
-                                unsafe_allow_html=True)
-                    
-                    # Title, Rating, Genres
-                    st.markdown(f"<div class='movie-title'>{movie['title']}</div>", unsafe_allow_html=True)
-                    st.markdown(f"<div class='movie-rating'>⭐ IMDb: {movie['rating']}</div>", unsafe_allow_html=True)
-                    st.markdown(f"<div class='movie-genre'>{movie['genres']}</div>", unsafe_allow_html=True)
-                    
-                    # Fixed-position button inside a container
-                    st.markdown("<div class='button-container'>"
-                                f"<a class='trailer-button' href='{movie['trailer_url']}' target='_blank'>▶ Watch Trailer</a>"
-                                "</div>", unsafe_allow_html=True)
+                    if m["poster_url"]:
+                        st.markdown(
+                            f'<a href="{m["imdb_url"]}" target="_blank">'
+                            f'<img src="{m["poster_url"]}" alt="{m["title"]}"></a>',
+                            unsafe_allow_html=True
+                        )
+                    else:
+                        st.markdown(
+                            f'<a href="{m["imdb_url"]}" target="_blank">'
+                            f'<div class="movie-container">No poster available</div></a>',
+                            unsafe_allow_html=True
+                        )
+                    st.markdown(f"<div class='movie-title'>{m['title']}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='movie-rating'>⭐ IMDb: {m['rating']}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='movie-genre'>{m['genres']}</div>", unsafe_allow_html=True)
+                    st.markdown(
+                        "<div class='button-container'>"
+                        f"<a class='trailer-button' href='{m['trailer_url']}' target='_blank'>▶ Watch Trailer</a>"
+                        "</div>",
+                        unsafe_allow_html=True
+                    )
 
-# --- Footer ---
-st.markdown("<div class='footer'>Made by <b>Tavish Chawla</b> | 📧 <a href='mailto:tchawla827@gmail.com'>tchawla827@gmail.com</a></div>", unsafe_allow_html=True)
+# Footer
+st.markdown(
+    "<div class='footer'>Made by <b>Tavish Chawla</b> | 📧 "
+    "<a href='mailto:tchawla827@gmail.com'>tchawla827@gmail.com</a></div>",
+    unsafe_allow_html=True
+)
