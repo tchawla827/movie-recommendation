@@ -74,9 +74,13 @@ pip install -r requirements.txt
 ```
 
 ### **4️⃣ Train the Model**
-Run the following script to generate the model:
+Open `Movie Recommender System Data Analysis.ipynb` in Jupyter and run all cells to generate the model.
+
+Alternatively, convert the notebook to a script and execute it:
+
 ```bash
-python Movie_Recommender_System_Data_Analysis.ipynb
+jupyter nbconvert --to script "Movie Recommender System Data Analysis.ipynb"
+python "Movie Recommender System Data Analysis.py"
 ```
 
 ### **5️⃣ Start the Streamlit App**
