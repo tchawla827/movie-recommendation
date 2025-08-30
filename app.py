@@ -235,8 +235,10 @@ if selected_genres:
 if year_min != year_max:
     mask &= year_series.between(year_range[0], year_range[1])
 
-filtered_idx = movie_data[mask].index.tolist()
-filtered_movies = movie_data.loc[filtered_idx].reset_index(drop=True)
+
+filtered_idx = np.flatnonzero(mask.to_numpy())
+filtered_movies = movie_data.iloc[filtered_idx].reset_index(drop=True)
+
 filtered_similarity = similarity_matrix[np.ix_(filtered_idx, filtered_idx)]
 
 titles = (
