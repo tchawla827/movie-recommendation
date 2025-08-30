@@ -203,13 +203,6 @@ except Exception as e:
     st.error(f"Failed to load movie list: {e}")
     st.stop()
 
-# --- Debug: check what we loaded ---
-st.write("DEBUG movie_data type:", type(movie_data))
-try:
-    st.write(movie_data.head())
-except Exception as e:
-    st.write("movie_data.head() failed:", e)
-
 # ==============================
 # UI
 # ==============================
