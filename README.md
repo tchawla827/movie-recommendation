@@ -37,6 +37,10 @@ This is a **Streamlit web application** that recommends movies based on user int
 - **Hover effects** on movie cards for a smooth experience.
 - **Optimized for both desktop & mobile viewing.**
 
+### **🗂️ 7. Genre & Year Filters**
+- Narrow recommendations using a **genre multiselect** and **release year range slider**.
+- Helps you find the perfect movie for your mood or era.
+
 ---
 
 ## 📊 Dataset Used
