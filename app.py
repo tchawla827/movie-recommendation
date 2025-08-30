@@ -211,6 +211,7 @@ except Exception as e:
 st.title("🎬 Movie Recommender")
 
 # Genre and year filters
+
 genre_col = next((c for c in ["genres", "genre"] if c in movie_data.columns), None)
 if genre_col:
     genre_series = movie_data[genre_col].fillna("").astype(str)
@@ -225,6 +226,7 @@ if genre_col:
 else:
     genre_series = pd.Series([], dtype=str)
     all_genres = []
+
 
 if "release_date" in movie_data.columns:
     year_series = pd.to_datetime(movie_data["release_date"], errors="coerce").dt.year
@@ -244,6 +246,7 @@ year_range = (
 )
 
 mask = pd.Series(True, index=movie_data.index)
+
 if selected_genres and not genre_series.empty:
     mask &= genre_series.apply(lambda x: any(g in x for g in selected_genres))
 if year_min != year_max:
@@ -251,6 +254,7 @@ if year_min != year_max:
 
 filtered_idx = np.flatnonzero(mask.to_numpy())
 filtered_movies = movie_data.iloc[filtered_idx].reset_index(drop=True)
+
 filtered_similarity = similarity_matrix[np.ix_(filtered_idx, filtered_idx)]
 
 titles = (
