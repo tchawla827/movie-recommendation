@@ -10,6 +10,8 @@ from typing import Optional
 
 import streamlit as st
 import requests
+import numpy as np
+import pandas as pd
 
 # Try to import gdown (required for Drive downloads)
 try:
@@ -208,14 +210,51 @@ except Exception as e:
 # ==============================
 st.title("🎬 Movie Recommender")
 
-titles = movie_data["title"].values if "title" in getattr(movie_data, "columns", []) else []
+# Genre and year filters
+all_genres = sorted({g.strip() for gens in movie_data.get("genres", []) for g in str(gens).split(",") if g})
+if "release_date" in movie_data.columns:
+    year_series = pd.to_datetime(movie_data["release_date"], errors="coerce").dt.year
+elif "year" in movie_data.columns:
+    year_series = pd.to_numeric(movie_data["year"], errors="coerce")
+else:
+    year_series = pd.Series([], dtype="Int64")
+
+year_min = int(year_series.min()) if not year_series.dropna().empty else 0
+year_max = int(year_series.max()) if not year_series.dropna().empty else 0
+
+selected_genres = st.multiselect("🎞️ Filter by genre:", all_genres)
+year_range = (
+    st.slider("📅 Release year:", year_min, year_max, (year_min, year_max))
+    if year_min != year_max
+    else (year_min, year_max)
+)
+
+mask = pd.Series(True, index=movie_data.index)
+if selected_genres:
+    mask &= movie_data["genres"].apply(lambda x: any(g in str(x) for g in selected_genres))
+if year_min != year_max:
+    mask &= year_series.between(year_range[0], year_range[1])
+
+filtered_idx = np.flatnonzero(mask.to_numpy())
+filtered_movies = movie_data.iloc[filtered_idx].reset_index(drop=True)
+filtered_similarity = similarity_matrix[np.ix_(filtered_idx, filtered_idx)]
+
+titles = (
+    filtered_movies["title"].values
+    if "title" in getattr(filtered_movies, "columns", [])
+    else []
+)
+if len(titles) == 0:
+    st.warning("No movies match selected filters.")
+    st.stop()
+
 user_choice = st.selectbox("🔍 Search for a movie:", titles)
 
 if st.button("🎥 Recommend"):
     if user_choice not in titles:
         st.error("⚠️ Movie not found. Please check spelling.")
     else:
-        recs = generate_recommendations(user_choice, movie_data, similarity_matrix)
+        recs = generate_recommendations(user_choice, filtered_movies, filtered_similarity)
         cols = st.columns(5)
         for idx, col in enumerate(cols):
             if idx < len(recs):
